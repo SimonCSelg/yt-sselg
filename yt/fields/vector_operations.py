@@ -408,7 +408,12 @@ def create_averaged_field(registry, basename, field_units, ftype="gas",
                           slice_info=None, validators=None,
                           weight="cell_mass",
                           filter_width=3):
-
+    """
+    Wrapper for the field definition of averaged_field. Extensions by S. Selg.
+    new parameter: filter_width. This allows passing a filter_widh to change 
+    the default value of 3. In the official version 3.5.0 this is hard coded.
+    S. Selg (21.05.2021, simon.selg@hs.uni-hamburg.de)
+    """
     if validators is None:
         validators = []
     validators += [ValidateSpatial(1, [(ftype, basename)])]
