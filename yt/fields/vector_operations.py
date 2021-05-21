@@ -1,6 +1,8 @@
 """
 This is where we define a handful of vector operations for fields.
 
+S. Selg (05/2021): Modification to create_averaged_field()
+
 """
 
 #-----------------------------------------------------------------------------
@@ -404,7 +406,8 @@ def create_vector_fields(registry, basename, field_units,
 
 def create_averaged_field(registry, basename, field_units, ftype="gas",
                           slice_info=None, validators=None,
-                          weight="cell_mass"):
+                          weight="cell_mass",
+                          filter_width):
 
     if validators is None:
         validators = []
@@ -412,16 +415,22 @@ def create_averaged_field(registry, basename, field_units, ftype="gas",
 
     def _averaged_field(field, data):
         nx, ny, nz = data[(ftype, basename)].shape
-        new_field = data.ds.arr(np.zeros((nx-2, ny-2, nz-2), dtype=np.float64),
+        new_field = data.ds.arr(np.zeros((nx-(filter_width-1), 
+                                          ny-(filter_width-1), 
+                                          nz-(filter_width-1)), dtype=np.float64),
                                 (just_one(data[(ftype, basename)]) *
                                  just_one(data[(ftype, weight)])).units)
-        weight_field = data.ds.arr(np.zeros((nx-2, ny-2, nz-2),
+        weight_field = data.ds.arr(np.zeros((nx-(filter_width-1), 
+                                             ny-(filter_width-1), 
+                                             nz-(filter_width-1)),
                                             dtype=np.float64),
                                    data[(ftype, weight)].units)
         i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
 
         for i, j, k in zip(i_i.ravel(), j_i.ravel(), k_i.ravel()):
-            sl = (slice(i, nx-(2-i)), slice(j, ny-(2-j)), slice(k, nz-(2-k)))
+            sl = (slice(i, nx-((filter_width-1)-i)), 
+                  slice(j, ny-((filter_width-1)-j)), 
+                  slice(k, nz-((filter_width-1)-k)))
             new_field += data[(ftype, basename)][sl] * data[(ftype, weight)][sl]
             weight_field += data[(ftype, weight)][sl]
 
