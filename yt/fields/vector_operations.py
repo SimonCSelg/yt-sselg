@@ -415,29 +415,35 @@ def create_averaged_field(registry, basename, field_units, ftype="gas",
 
     def _averaged_field(field, data):
         nx, ny, nz = data[(ftype, basename)].shape
-        new_field = data.ds.arr(np.zeros((nx-(filter_width-1), 
-                                          ny-(filter_width-1), 
-                                          nz-(filter_width-1)), dtype=np.float64),
+        # CALCUATE ARRAY INDICES
+        red_shape = filter_width - 1   # = 2 for the original default kernel width of 3
+        red_shape_i = int(red_shape/2) # = 1 for the original default kernel width of 3
+        # NOW THE REST
+        new_field = data.ds.arr(np.zeros((nx-red_shape, 
+                                          ny-red_shape, 
+                                          nz-red_shape), dtype=np.float64),
                                 (just_one(data[(ftype, basename)]) *
                                  just_one(data[(ftype, weight)])).units)
-        weight_field = data.ds.arr(np.zeros((nx-(filter_width-1), 
-                                             ny-(filter_width-1), 
-                                             nz-(filter_width-1)),
+        weight_field = data.ds.arr(np.zeros((nx-red_shape, 
+                                             ny-red_shape, 
+                                             nz-red_shape),
                                             dtype=np.float64),
                                    data[(ftype, weight)].units)
         i_i, j_i, k_i = np.mgrid[0:filter_width, 0:filter_width, 0:filter_width]
 
         for i, j, k in zip(i_i.ravel(), j_i.ravel(), k_i.ravel()):
-            sl = (slice(i, nx-((filter_width-1)-i)), 
-                  slice(j, ny-((filter_width-1)-j)), 
-                  slice(k, nz-((filter_width-1)-k)))
+            sl = (slice(i, nx-(red_shape-i)), 
+                  slice(j, ny-(red_shape-j)), 
+                  slice(k, nz-(red_shape-k)))
             new_field += data[(ftype, basename)][sl] * data[(ftype, weight)][sl]
             weight_field += data[(ftype, weight)][sl]
 
         # Now some fancy footwork
         new_field2 = data.ds.arr(np.zeros((nx, ny, nz)), 
                                  data[(ftype, basename)].units)
-        new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
+        new_field2[red_shape_i:-red_shape_i, 
+                   red_shape_i:-red_shape_i, 
+                   red_shape_i:-red_shape_i] = new_field / weight_field
         return new_field2
 
     registry.add_field((ftype, "averaged_%s" % basename),
